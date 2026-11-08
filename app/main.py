@@ -5,6 +5,7 @@ Run locally with:  uvicorn app.main:app --reload
 
 from fastapi import FastAPI
 
+from app.catalog.routes import router as catalog_router
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
 from app.core.health import router as health_router
@@ -27,13 +28,12 @@ app.middleware("http")(request_context_middleware)
 
 # ---------- Routers ----------
 app.include_router(health_router)
+app.include_router(catalog_router)
 
 # Teammates' routers are registered here as each module is merged (Person 3 owns this list):
 # from app.auth.routes import router as auth_router              # Person 2: /auth/login, /auth/me
-# from app.catalog.routes import router as catalog_router        # Person 3: /fields, availability
 # from app.bookings.routes import router as bookings_router      # Person 1: /fields/{id}/bookings, /bookings/{id}
 # from app.manager.routes import router as manager_router        # Person 2: /fields/{id}/blocks
 # app.include_router(auth_router)
-# app.include_router(catalog_router)
 # app.include_router(bookings_router)
 # app.include_router(manager_router)

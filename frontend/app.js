@@ -1,0 +1,1 @@
+document.getElementById("status").textContent = "Front end is being served by FastAPI.";

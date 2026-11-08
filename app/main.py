@@ -3,7 +3,11 @@
 Run locally with:  uvicorn app.main:app --reload
 """
 
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.catalog.routes import router as catalog_router
 from app.core.config import get_settings
@@ -29,6 +33,16 @@ app.middleware("http")(request_context_middleware)
 # ---------- Routers ----------
 app.include_router(health_router)
 app.include_router(catalog_router)
+
+# ---------- Test front end (same origin as the API, so no CORS setup is needed) ----------
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+
+
+@app.get("/", include_in_schema=False)
+def frontend_index() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "index.html")
+
 
 # Teammates' routers are registered here as each module is merged (Person 3 owns this list):
 # from app.auth.routes import router as auth_router              # Person 2: /auth/login, /auth/me

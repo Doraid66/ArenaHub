@@ -81,6 +81,10 @@ class IdempotencyConflictError(AppError):
     code = "idempotency_conflict"
     message = "This Idempotency-Key was already used with a different request"
 
+class ServiceUnavailableError(AppError):
+    status_code = 503
+    code = "service_unavailable"
+    message = "Service temporarily unavailable"
 
 class InvalidInputError(AppError):
     status_code = 422

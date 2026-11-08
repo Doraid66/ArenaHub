@@ -15,7 +15,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.errors import error_body
+from app.core.errors import error_body, error_responses
 
 logger = logging.getLogger("arenahub.health")
 
@@ -34,7 +34,7 @@ def live() -> HealthStatus:
 @router.get(
     "/ready",
     response_model=HealthStatus,
-    responses={503: {"description": "The database is not reachable"}},
+    responses=error_responses(503),
 )
 def ready(db: Session = Depends(get_db)):
     try:

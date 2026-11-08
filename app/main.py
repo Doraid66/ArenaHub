@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.catalog.routes import router as catalog_router
 from app.core.config import get_settings
-from app.core.errors import register_error_handlers
+from app.core.errors import make_contract_match_error_format, register_error_handlers
 from app.core.health import router as health_router
 from app.core.logging import request_context_middleware, setup_logging
 
@@ -24,8 +24,9 @@ app = FastAPI(
     description="Booking service for multi-sport facilities: browse fields, hold time slots, block time.",
 )
 
-# Turn every error into the shared {"error": {...}} format.
+# Turn every error into the shared {"error": {...}} format, and document it that way.
 register_error_handlers(app)
+make_contract_match_error_format(app)
 
 # Correlation ID + one log line per request.
 app.middleware("http")(request_context_middleware)

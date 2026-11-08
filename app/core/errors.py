@@ -19,11 +19,18 @@ def error_body(code: str, message: str) -> dict:
     """Build the shared error envelope."""
     return {"error": {"code": code, "message": message}}
 
+
 # ---------- Error shape for the OpenAPI contract ----------
+
+class ValidationIssue(BaseModel):
+    field: str
+    reason: str
+
 
 class ErrorDetail(BaseModel):
     code: str
     message: str
+    details: list[ValidationIssue] | None = None  # only on 422 validation errors
 
 
 class ErrorResponse(BaseModel):
@@ -33,6 +40,65 @@ class ErrorResponse(BaseModel):
 def error_responses(*status_codes: int) -> dict:
     """Document error responses on a route, e.g. responses=error_responses(401, 404)."""
     return {code: {"model": ErrorResponse} for code in status_codes}
+
+
+_ERROR_REF = {"$ref": "#/components/schemas/ErrorResponse"}
+_FASTAPI_VALIDATION_REF = "#/components/schemas/HTTPValidationError"
+
+
+def _error_content() -> dict:
+    return {"application/json": {"schema": dict(_ERROR_REF)}}
+
+
+def make_contract_match_error_format(app: FastAPI) -> None:
+    """Make the published contract describe the errors the API really returns.
+
+    Applied to every route automatically, so nobody has to remember it:
+    - 422: FastAPI documents its own {"detail": [...]} shape, but our handler returns
+      {"error": {...}}. Every 422 is re-pointed to ErrorResponse.
+    - 401: every route that requires a login token is documented as returning 401.
+    - 400: every route with a request body is documented as returning 400 (FastAPI
+      answers 400 when the body can't be read at all, e.g. broken bytes).
+    Called once in main.py.
+    """
+    generate = app.openapi
+
+    def openapi() -> dict:
+        if app.openapi_schema is not None:
+            return app.openapi_schema
+        schema = generate()
+        schemas = schema.setdefault("components", {}).setdefault("schemas", {})
+
+        # Make sure ErrorResponse (and the models it uses) are in the contract.
+        error_schema = ErrorResponse.model_json_schema(ref_template="#/components/schemas/{model}")
+        for name, definition in error_schema.pop("$defs", {}).items():
+            schemas.setdefault(name, definition)
+        schemas.setdefault("ErrorResponse", error_schema)
+
+        for operations in schema.get("paths", {}).values():
+            for operation in operations.values():
+                responses = operation.setdefault("responses", {})
+                invalid = responses.get("422")
+                if invalid:
+                    current = invalid.get("content", {}).get("application/json", {}).get("schema", {})
+                    if current.get("$ref") == _FASTAPI_VALIDATION_REF:
+                        invalid["content"] = _error_content()
+                        invalid["description"] = "Invalid input"
+                if "requestBody" in operation and "400" not in responses:
+                    responses["400"] = {"description": "Request body could not be read",
+                                        "content": _error_content()}
+                if operation.get("security") and "401" not in responses:
+                    responses["401"] = {"description": "Missing, invalid or expired token",
+                                        "content": _error_content()}
+
+        # FastAPI's validation schemas are no longer used anywhere.
+        if _FASTAPI_VALIDATION_REF not in str(schema["paths"]):
+            schemas.pop("HTTPValidationError", None)
+            schemas.pop("ValidationError", None)
+        return schema
+
+    app.openapi = openapi
+
 
 # ---------- Typed errors that services raise ----------
 
@@ -81,10 +147,12 @@ class IdempotencyConflictError(AppError):
     code = "idempotency_conflict"
     message = "This Idempotency-Key was already used with a different request"
 
+
 class ServiceUnavailableError(AppError):
     status_code = 503
     code = "service_unavailable"
     message = "Service temporarily unavailable"
+
 
 class InvalidInputError(AppError):
     status_code = 422

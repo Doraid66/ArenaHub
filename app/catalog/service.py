@@ -29,7 +29,11 @@ def to_utc(value: datetime, name: str) -> datetime:
     """Require an explicit timezone offset, then convert to UTC."""
     if value.tzinfo is None or value.utcoffset() is None:
         raise InvalidInputError(f"'{name}' must include a timezone offset, e.g. 2026-11-15T20:00:00-05:00")
-    return value.astimezone(timezone.utc)
+    try:
+        return value.astimezone(timezone.utc)
+    except OverflowError:
+        # e.g. 0001-01-01T00:00:01+00:03 would be before year 1 in UTC (found by Schemathesis)
+        raise InvalidInputError(f"'{name}' is out of range") from None
 
 
 class CatalogService:

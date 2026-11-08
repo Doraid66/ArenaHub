@@ -57,15 +57,23 @@ def test_parent_field_is_asked_about_itself(client, fake_availability):
     assert fake_availability.calls[0][0] == FULL_SOCCER_FIELD_ID
 
 
+def error_text(error: dict) -> str:
+    """The message plus any per-field reasons, as one string."""
+    return " ".join([error["message"], *(d["reason"] for d in error.get("details") or [])])
+
+
 @pytest.mark.parametrize(
     "params, reason",
     [
         ({"start": "2026-11-15T20:00:00", "end": "2026-11-15T21:00:00-05:00"}, "offset"),
         ({"start": "2026-11-15T20:00:00-05:00", "end": "2026-11-15T21:00:00"}, "offset"),
+        ({"start": "2026-11-15", "end": "2026-11-16"}, "offset"),
+        ({"start": "0", "end": "3600"}, "offset"),                    # not read as Unix time
+        ({"start": "1700000000", "end": "1700003600"}, "offset"),
         ({"start": "2026-11-15T21:00:00Z", "end": "2026-11-15T20:00:00Z"}, "after"),
         ({"start": "2026-11-15T20:00:00Z", "end": "2026-11-15T20:00:00Z"}, "after"),
-        ({"start": "2026-11-15T20:00:00Z"}, None),
-        ({"start": "not-a-date", "end": "2026-11-15T20:00:00Z"}, None),
+        ({"start": "2026-11-15T20:00:00Z"}, "required"),
+        ({"start": "not-a-date", "end": "2026-11-15T20:00:00Z"}, "offset"),
     ],
 )
 def test_rejects_invalid_times(client, fake_availability, params, reason):
@@ -73,8 +81,7 @@ def test_rejects_invalid_times(client, fake_availability, params, reason):
     assert r.status_code == 422
     error = r.json()["error"]
     assert error["code"] == "invalid_input"
-    if reason:
-        assert reason in error["message"]
+    assert reason in error_text(error)
     assert fake_availability.calls == []  # the engine is never asked
 
 
@@ -106,3 +113,11 @@ def test_503_until_the_reservation_engine_is_merged(anon_client):
         app.dependency_overrides.clear()
     assert r.status_code == 503
     assert r.json()["error"]["code"] == "service_unavailable"
+
+
+def test_out_of_range_time_is_422_not_500(client, fake_availability):
+    # Found by Schemathesis: converting this to UTC lands before year 1.
+    r = client.get(URL, params={"start": "0001-01-01T00:00:01+00:03", "end": "0001-04-01T00:00:00+12:01"})
+    assert r.status_code == 422
+    assert "out of range" in error_text(r.json()["error"])
+    assert fake_availability.calls == []

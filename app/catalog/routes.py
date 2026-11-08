@@ -1,7 +1,7 @@
 """HTTP routes for the catalog. Thin: read the request, call the service, return the result."""
 
 import uuid
-from datetime import datetime
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -11,6 +11,7 @@ from app.catalog.service import AvailabilityChecker, CatalogService
 from app.core.database import get_db
 from app.core.errors import ServiceUnavailableError, error_responses
 from app.core.principal import Principal, get_current_principal
+from app.core.timestamps import UtcTimestamp
 
 router = APIRouter(tags=["catalog"])
 
@@ -66,8 +67,8 @@ def list_fields(
 )
 def check_availability(
     field_id: uuid.UUID,
-    start: datetime = Query(description="Start, with a timezone offset, e.g. 2026-11-15T20:00:00-05:00"),
-    end: datetime = Query(description="End, with a timezone offset; must be after start"),
+    start: Annotated[UtcTimestamp, Query(description="Start, with a timezone offset, e.g. 2026-11-15T20:00:00-05:00")],
+    end: Annotated[UtcTimestamp, Query(description="End, with a timezone offset; must be after start")],
     principal: Principal = Depends(get_current_principal),  # login required
     service: CatalogService = Depends(get_catalog_service_with_availability),
 ) -> AvailabilityOut:

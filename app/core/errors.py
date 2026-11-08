@@ -9,6 +9,7 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 logger = logging.getLogger("arenahub.errors")
@@ -18,6 +19,20 @@ def error_body(code: str, message: str) -> dict:
     """Build the shared error envelope."""
     return {"error": {"code": code, "message": message}}
 
+# ---------- Error shape for the OpenAPI contract ----------
+
+class ErrorDetail(BaseModel):
+    code: str
+    message: str
+
+
+class ErrorResponse(BaseModel):
+    error: ErrorDetail
+
+
+def error_responses(*status_codes: int) -> dict:
+    """Document error responses on a route, e.g. responses=error_responses(401, 404)."""
+    return {code: {"model": ErrorResponse} for code in status_codes}
 
 # ---------- Typed errors that services raise ----------
 

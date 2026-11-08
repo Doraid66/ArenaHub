@@ -48,6 +48,17 @@ Entry format:
   `alembic revision --rev-id 0001`, which fills in the ids.
 - **Lesson:** Don't create empty files where a tool expects a specific format.
 
+### 2026-11-07 — Migration created a doubled constraint name
+- **Tool:** Claude
+- **Prompt:** Write migration 0001 for facilities and fields, matching the models exactly.
+- **AI output:** A migration naming the check constraint `ck_fields_not_own_parent`.
+- **Problem:** The shared naming convention added its own `ck_fields_` prefix on top, so the
+  database got `ck_fields_ck_fields_not_own_parent`. `alembic check` did not catch it, since
+  it doesn't compare check constraints.
+- **Fix:** Wrapped the name in `op.f(...)` so it is used exactly as written; confirmed with
+  `\d fields`.
+- **Lesson:** "No differences detected" only covers what the tool compares. Inspect the
+  real table when names matter.
 ---
 
 ## Proposal phase (September 2026)

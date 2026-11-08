@@ -16,6 +16,17 @@ Entry format:
 
 ## Phase 2 — Bootstrap (Person 3)
 
+### 2026-11-07 — Front-end helper assigned to a read-only property
+- **Tool:** Claude
+- **Prompt:** Build a plain JavaScript test front end for login, availability, holds and blocks.
+- **AI output:** A DOM helper that used `Object.assign(element, props)`, including `dataset`.
+- **Problem:** `element.dataset` is read-only; in strict mode the assignment throws, so the
+  bookings table never rendered after a successful hold. It only showed up when the page
+  was exercised end to end in a browser.
+- **Fix:** Copy `dataset` values into `element.dataset` separately. Re-ran the full flow,
+  including a simulated server crash to confirm the retry reuses the same Idempotency-Key.
+- **Lesson:** Click through the real page; reading the code didn't reveal this.
+
 ### 2026-11-07 — Alembic skipped the wrong missing modules
 - **Tool:** Claude
 - **Prompt:** Set up Alembic so `env.py` imports every team's model modules, skipping
@@ -48,6 +59,17 @@ Entry format:
   `alembic revision --rev-id 0001`, which fills in the ids.
 - **Lesson:** Don't create empty files where a tool expects a specific format.
 
+### 2026-11-07 — Migration created a doubled constraint name
+- **Tool:** Claude
+- **Prompt:** Write migration 0001 for facilities and fields, matching the models exactly.
+- **AI output:** A migration naming the check constraint `ck_fields_not_own_parent`.
+- **Problem:** The shared naming convention added its own `ck_fields_` prefix on top, so the
+  database got `ck_fields_ck_fields_not_own_parent`. `alembic check` did not catch it, since
+  it doesn't compare check constraints.
+- **Fix:** Wrapped the name in `op.f(...)` so it is used exactly as written; confirmed with
+  `\d fields`.
+- **Lesson:** "No differences detected" only covers what the tool compares. Inspect the
+  real table when names matter.
 ---
 
 ## Proposal phase (September 2026)

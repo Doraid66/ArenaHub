@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ArenaHub test client</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>ArenaHub</h1>
+      <p class="muted">Test client for the booking API · <a href="/docs" target="_blank" rel="noopener">API docs</a></p>
+    </div>
+    <div id="session" class="session">Not logged in</div>
+  </header>
+
+  <main>
+    <!-- 1. Login -->
+    <section class="card" id="login-card">
+      <h2><span class="step">1</span> Log in</h2>
+      <form id="login-form" class="row">
+        <label>Email <input id="login-email" type="email" autocomplete="username" required></label>
+        <label>Password <input id="login-password" type="password" autocomplete="current-password" required></label>
+        <button type="submit">Log in</button>
+        <button type="button" id="logout-btn" class="secondary" hidden>Log out</button>
+      </form>
+      <p class="hint">The token is kept in memory only: reloading the page logs you out.</p>
+      <div id="login-result" class="result" hidden></div>
+    </section>
+
+    <!-- 2. Field and time slot -->
+    <section class="card">
+      <h2><span class="step">2</span> Field and time slot</h2>
+      <div class="row">
+        <label class="grow">Field
+          <select id="field-select" disabled><option>Log in to load fields</option></select>
+        </label>
+        <button type="button" id="reload-fields-btn" class="secondary" disabled>Reload fields</button>
+      </div>
+      <div class="row">
+        <label>Start <input id="start-input" type="datetime-local" step="900"></label>
+        <label>End <input id="end-input" type="datetime-local" step="900"></label>
+        <span class="muted" id="tz-label"></span>
+      </div>
+      <div class="row">
+        <button type="button" id="availability-btn">Check availability</button>
+      </div>
+      <p class="hint">Availability is advisory: only placing a hold decides who gets the slot.</p>
+      <div id="availability-result" class="result" hidden></div>
+    </section>
+
+    <!-- 3. Bookings -->
+    <section class="card">
+      <h2><span class="step">3</span> Hold the slot (10 minutes)</h2>
+      <div class="row">
+        <button type="button" id="hold-btn">Place hold</button>
+      </div>
+      <p class="hint">If the request fails before an answer arrives, pressing the button again retries with the
+        <strong>same</strong> Idempotency-Key, so the hold can never be created twice.</p>
+      <div id="hold-result" class="result" hidden></div>
+
+      <h3>My bookings (this session)</h3>
+      <table class="bookings">
+        <thead><tr><th>Field</th><th>Time</th><th>Status</th><th>Hold expires</th><th>ID</th><th></th></tr></thead>
+        <tbody id="bookings-body"><tr><td colspan="6" class="muted">No bookings yet.</td></tr></tbody>
+      </table>
+
+      <div class="row">
+        <label class="grow">Look up a booking by ID
+          <input id="lookup-input" placeholder="booking UUID">
+        </label>
+        <button type="button" id="lookup-btn" class="secondary">Get booking</button>
+      </div>
+      <p class="hint">To test owner-only access: create a booking, log out, log in as another player, then look up the
+        same ID (it should be "not found").</p>
+      <div id="lookup-result" class="result" hidden></div>
+    </section>
+
+    <!-- 4. Manager -->
+    <section class="card">
+      <h2><span class="step">4</span> Manager: block the slot</h2>
+      <p id="manager-info" class="muted">Log in to see which facilities you manage.</p>
+      <div class="row">
+        <button type="button" id="block-btn">Create block</button>
+      </div>
+      <div id="block-result" class="result" hidden></div>
+    </section>
+
+    <!-- 5. Request log -->
+    <section class="card">
+      <h2><span class="step">5</span> Request log</h2>
+      <p class="hint">Every response carries an X-Request-ID; search the server logs for it.</p>
+      <ol id="request-log" class="log"></ol>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

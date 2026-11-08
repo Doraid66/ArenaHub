@@ -7,7 +7,7 @@ versus its sub-fields.
 
 SOEN 387 — Web-Based Enterprise Application Design, Concordia University, Fall 2026.
 
-**Founders:** Durid Danhash, (add your name)
+**Founders:** _(add team names)_
 
 ## Tech stack
 
@@ -29,6 +29,7 @@ docker compose up --build     # add -d to run in the background
 This starts PostgreSQL and the API, applies all migrations, loads demo data, and serves on
 port 8000.
 
+- Test front end: http://localhost:8000
 - API docs (Swagger UI): http://localhost:8000/docs
 - OpenAPI contract: http://localhost:8000/openapi.json
 - Liveness: http://localhost:8000/health/live
@@ -46,37 +47,68 @@ pip install -r requirements-dev.txt
 
 docker compose up -d db                          # only the database
 alembic upgrade head                             # apply migrations
+python -m scripts.seed                           # load demo data (safe to run again)
 uvicorn app.main:app --reload --no-access-log    # http://localhost:8000
 ```
 
 Settings are read from `.env`. Variables exported in your shell take priority over `.env`.
 Stop the `api` container first if it is running, since both use port 8000.
 
+## Running the tests
+
+```bash
+docker compose up -d db
+python -m pytest
+```
+
+Tests use a separate database (`arenahub_test`), rebuilt from the migrations and demo
+data on every run; your development data is never touched. Useful fixtures in
+`tests/conftest.py`: `client` (a logged-in stand-in user, with a fake availability
+engine) and `anon_client` (no login).
+
+## Demo data
+
+`scripts/seed.py` loads fixed IDs from `app/catalog/demo_data.py`, so tests and seed
+data can import them instead of copying strings:
+
+| Constant | What it is |
+|---|---|
+| `DEMO_FACILITY_ID` | ArenaHub Demo Centre |
+| `FULL_SOCCER_FIELD_ID` | Soccer Field (11v11): parent of the three 7v7 fields |
+| `SUB_FIELD_A_ID`, `SUB_FIELD_B_ID`, `SUB_FIELD_C_ID` | 7v7 sub-fields of the full field |
+| `BASKETBALL_COURT_ID`, `FOOTBALL_FIELD_ID` | Standalone fields |
+| `OTHER_FACILITY_ID`, `OTHER_SOCCER_FIELD_ID` | A second facility, for "manager of another facility" tests |
+
+Demo accounts are added by `app/auth/seed.py` (`seed_accounts(db)`, Person 2) once it exists.
+
 ## Project layout
 
 | Path | Owner | Purpose |
 |---|---|---|
-| `app/main.py` | Person 3 | Creates the app, registers middleware, error handlers and routers |
+| `app/main.py` | Person 3 | Creates the app, registers middleware, error handlers, routers and the front end |
 | `app/core/` | Person 3 (except `principal.py`) | Settings, database session, error format, logging, health checks |
 | `app/core/principal.py` | Person 2 | Current user (`Principal`) and manager-authorization helpers |
 | `app/auth/`, `app/manager/` | Person 2 | Login, tokens, manager blocks |
 | `app/bookings/`, `app/reservations/` | Person 1 | Holds, conflict engine, idempotency, concurrency |
-| `app/catalog/` | Person 3 | Facilities, fields, availability |
+| `app/catalog/` | Person 3 | Facilities, fields, availability, demo data |
 | `frontend/` | Person 3 | Test front end |
 | `contracts/` | Person 3 | Exported OpenAPI contract |
 | `migrations/` | Each owner | Alembic migrations 0001 (P3), 0002 (P2), 0003 (P1) |
+| `scripts/` | Person 3 | Start-up script, demo data seed |
+| `tests/` | Each owner | Tests per module; shared fixtures in `tests/conftest.py` |
 | `docs/AI_LOG.md` | Everyone | AI collaboration log |
-
-
 
 ## Team conventions
 
 - **Errors:** raise the typed errors in `app/core/errors.py` (`NotFoundError`,
   `SlotUnavailableError`, ...). Every error is returned as
   `{"error": {"code": "...", "message": "..."}}`; callers never see a stack trace.
+  Document a route's errors with `responses=error_responses(401, 404, ...)`.
 - **Database:** every model uses the one `Base` from `app/core/database.py`. Routes get a
   session with `Depends(get_db)`, which never commits — services commit or roll back
   themselves. Routes that use the database are plain `def`, not `async def`.
+- **Login:** protected routes take `principal: Principal = Depends(get_current_principal)`.
+  The caller's identity always comes from the token, never from the request body.
 - **Migrations:** always use a fixed revision id, in order:
   `alembic revision -m "short description" --rev-id 0002`
   and set `down_revision` to the previous id.
@@ -92,8 +124,8 @@ Stop the `api` container first if it is running, since both use port 8000.
 | Feature | Status |
 |---|---|
 | Project bootstrap: settings, database, error format, JSON logs + correlation id, health checks, Alembic, Docker Compose | Done |
-| Facilities and fields, availability, test front end | In progress |
-| Login, tokens, manager authorization, manager blocks | In progress |
+| Facilities and fields (migration 0001, demo data), `GET /fields`, `GET /fields/{id}/availability`, test front end | Done (availability returns 503 until the reservation engine is merged) |
+| Login, tokens, manager authorization, manager blocks | In progress (`app/core/principal.py` is a placeholder that rejects every request) |
 | Booking holds, conflict engine, idempotency, concurrency test | In progress |
 | Published OpenAPI contract + conformance check | Planned |
 | Payments (simulated provider), email confirmation, split payment (v1.1) | Deferred to final phase |

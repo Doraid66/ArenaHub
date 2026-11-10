@@ -9,11 +9,13 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.auth.routes import router as auth_router
 from app.catalog.routes import router as catalog_router
 from app.core.config import get_settings
 from app.core.errors import make_contract_match_error_format, register_error_handlers
 from app.core.health import router as health_router
 from app.core.logging import request_context_middleware, setup_logging
+from app.manager.routes import router as manager_router
 
 settings = get_settings()
 setup_logging(settings.log_level)
@@ -34,6 +36,8 @@ app.middleware("http")(request_context_middleware)
 # ---------- Routers ----------
 app.include_router(health_router)
 app.include_router(catalog_router)
+app.include_router(auth_router)
+app.include_router(manager_router)
 
 # ---------- Test front end (same origin as the API, so no CORS setup is needed) ----------
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"

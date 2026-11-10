@@ -14,6 +14,7 @@ from fastapi import Security
 from fastapi.security import HTTPAuthorizationCredentials
 from schemathesis.checks import positive_data_acceptance
 
+from app.auth.demo_accounts import DEMO_PLAYER_1_ID
 from app.catalog.routes import get_availability_checker
 from app.core.errors import UnauthenticatedError
 from app.core.principal import Principal, bearer_scheme, get_current_principal
@@ -41,6 +42,7 @@ TEST_TOKEN = "contract-test-token"
 #   "POST /fields/{field_id}/bookings", "POST /fields/{field_id}/blocks"
 CROSS_FIELD_RULES = {
     "GET /fields/{field_id}/availability",
+    "POST /fields/{field_id}/blocks",
 }
 
 
@@ -53,7 +55,7 @@ def stand_in_principal(
     """
     if credentials is None or credentials.credentials != TEST_TOKEN:
         raise UnauthenticatedError()
-    return Principal(user_id=uuid.uuid4())
+    return Principal(user_id=DEMO_PLAYER_1_ID)
 
 
 @pytest.fixture(scope="module", autouse=True)

@@ -16,6 +16,7 @@ from datetime import datetime
 # 1. Point the app at the test database BEFORE any app module creates the engine.
 from sqlalchemy.engine import make_url
 
+from app.auth.demo_accounts import DEMO_PLAYER_1_ID
 from app.core.config import Settings
 
 _dev_url = make_url(Settings().database_url)
@@ -83,7 +84,7 @@ def anon_client() -> Iterator[TestClient]:
 @pytest.fixture
 def client(fake_availability: FakeAvailability) -> Iterator[TestClient]:
     """A logged-in client (stand-in user) whose availability answers come from the fake."""
-    app.dependency_overrides[get_current_principal] = lambda: Principal(user_id=uuid.uuid4())
+    app.dependency_overrides[get_current_principal] = lambda: Principal(user_id=DEMO_PLAYER_1_ID)
     app.dependency_overrides[get_availability_checker] = lambda: fake_availability
     yield TestClient(app)
     app.dependency_overrides.clear()

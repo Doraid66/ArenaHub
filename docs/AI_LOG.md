@@ -1,5 +1,4 @@
 # AI collaboration log
-
 Every teammate adds entries as they work, not at the end. The final report uses 3–5 of the
 best examples: where the assistant was wrong, incomplete, or insecure, and how we fixed it.
 
@@ -11,6 +10,38 @@ Entry format:
 - **Problem:** what was wrong, incomplete or risky
 - **Fix:** what we changed, and why
 - **Lesson:** what to check next time
+
+
+
+## Phase 2 – Person 2 (November 10, 2026)
+
+- **Who / tool:** Person 2 with Codex.
+- **Prompt:**I am Person 2, responsible for authentication, authorization, and manager blocks in Phase 2. The project already has shared interfaces that my implementation must follow. Person 1’s engine will be available later. First, review the existing code and interfaces, identify dependencies, and organize a step-by-step implementation and testing plan.Once I read it and modify what needs modification, execute the plan, explain key design decisions, and clearly identify what can be tested now and what must wait for integration.
+- **AI output:** Login, signed tokens, database memberships, and a manager facade that rejected blocks whose start time was already in the past.
+- **My code and design review:** I reviewed the generated code and questioned whether the facade should check the current time before forwarding a request to the shared engine. This could prevent a valid retry from reaching the engine’s idempotency lookup once the original block’s start time had passed.
+- **My test review:** I questioned whether the tests covered retries after time had advanced. The regression test `test_retry_can_reach_engine_after_original_block_start` reproduced the issue with `InvalidInputError`, showing that the validation order broke valid retries.
+- **Fix:** Removed the facade’s future-start check so the shared engine could replay completed requests before applying time-dependent validation to new requests. Authorization, UTC normalization, interval ordering, and key validation remained in the facade. A real-engine integration test was added to check that new past blocks were still rejected.
+- **Lesson:** Reviewing AI-generated code requires questioning both design decisions and test coverage. A validation rule can appear correct while breaking retries after time or state changes.
+- **Verification:**The full PostgreSQL suite passed three consecutive runs (112 passed, 6 skipped). These results do not establish real reservation integration, which remains unverified until Person 1’s implementation is available.
+
+### November 10, 2026 - Unicode email validation differed from OpenAPI
+
+- **Tool:** Codex.
+- **Prompt:** Set up PostgreSQL and verify the implementation against the real database.
+- **AI output:** An email pattern using `\s` for whitespace, shared between the
+  request model and its generated OpenAPI schema.
+- **Problem:** A repeated Schemathesis run generated an email containing Unicode
+  NEXT LINE (`U+0085`). Rust's runtime regex rejected it, but the OpenAPI regex
+  validator accepted it, so schema-valid input returned 422. A direct schema check
+  confirmed the mismatch before the fix.
+- **Fix:** Explicitly excluded `\u0085` in the pattern, added
+  `test_email_whitespace_rejection_matches_the_published_contract`, regenerated the
+  contract, and ran the full PostgreSQL suite successfully three times.
+- **Lesson:** Identical regex text can behave differently in different regex engines.
+  Repeat randomized conformance checks and compare runtime and contract validation
+  against the exact failing input.
+
+
 
 ---
 

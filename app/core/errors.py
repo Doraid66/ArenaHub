@@ -37,9 +37,26 @@ class ErrorResponse(BaseModel):
     error: ErrorDetail
 
 
+# Fixed descriptions, so the contract does not depend on the Python version.
+# (Python 3.13 renamed 422 from "Unprocessable Entity" to "Unprocessable Content".)
+_ERROR_DESCRIPTIONS = {
+    400: "Bad Request",
+    401: "Unauthorized",
+    403: "Forbidden",
+    404: "Not Found",
+    409: "Conflict",
+    422: "Unprocessable Entity",
+    500: "Internal Server Error",
+    503: "Service Unavailable",
+}
+
+
 def error_responses(*status_codes: int) -> dict:
     """Document error responses on a route, e.g. responses=error_responses(401, 404)."""
-    return {code: {"model": ErrorResponse} for code in status_codes}
+    return {
+        code: {"model": ErrorResponse, "description": _ERROR_DESCRIPTIONS.get(code, "Error")}
+        for code in status_codes
+    }
 
 
 _ERROR_REF = {"$ref": "#/components/schemas/ErrorResponse"}

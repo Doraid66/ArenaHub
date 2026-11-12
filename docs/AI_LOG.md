@@ -103,6 +103,51 @@ Entry format:
   real table when names matter.
 ---
 
+## Person 1 booking implementation (November 11, 2026)
+
+**Starting point supplied by Person 1:** Before implementation began, Person 1 wrote and
+provided `ArenaHub_Person1_Skeleton.zip`, alongside the team handoffs and course lectures.
+The skeleton already defined the proposed models, booking schemas/routes, service and repository
+interfaces, migration stub, and test/demo placeholders. Codex reviewed that starting point,
+retained its useful structure, and completed or revised the unfinished implementation and tests.
+
+### Booking resource method headers exposed by contract testing
+
+- **Tool:** Codex.
+- **Prompt:** Implement Person 1's booking engine using the shared handoff, lecture references,
+  and skeleton, add explanatory inline comments, verify it, and leave changes uncommitted/unpushed.
+- **AI output:** Separate ordinary FastAPI GET and DELETE handlers for `/bookings/{booking_id}`,
+  plus shared-engine hold creation, ownership, expiry, transactions, and retry receipts.
+- **Observed problem:** The first integrated PostgreSQL suite reported 118 passes, two obsolete
+  placeholder skips, and one Schemathesis failure. `OPTIONS /bookings/{id}` correctly returned
+  405 but advertised only `Allow: GET`, omitting the documented DELETE method.
+- **Correction:** Add a booking-local APIRoute subclass that gathers all supported methods for
+  the matching path before raising the existing shared HTTP error. The first correction looked
+  through `app.routes`, but this installed FastAPI wraps included routers, so the focused test
+  still failed. Inspecting the installed routing implementation showed why; reading the booking
+  router's own routes fixed the header. A dedicated regression now asserts GET and DELETE.
+- **Verification:** The complete integrated suite then passed. Separate PostgreSQL races also
+  verified occupancy, same-key replay, and unique-constraint rollback without orphan bookings.
+- **Lesson:** A plausible endpoint implementation can still violate HTTP contract details.
+  Keep the generated conformance test active, reproduce its actual failure, and inspect the
+  installed framework behavior instead of assuming its route structure.
+
+### Windows checkout prevented the Linux startup script from running
+
+- **Tool:** Codex.
+- **Prompt:** Verify the implementation through the project's real Docker demo path.
+- **AI output:** A successful image build followed by an attempted API container startup.
+- **Observed problem:** After moving to a free local port, the API exited with
+  `scripts/start.sh: 3: set: Illegal option -`. The tracked script used LF, but its Windows
+  working copy had CRLF. Python/HTTP tests had not exercised Linux shell parsing.
+- **Correction:** Add `*.sh text eol=lf` to `.gitattributes` and normalize the working copy to
+  the already-tracked LF contents. No startup script logic or Dockerfile change was needed.
+- **Verification:** Rebuilding produced a healthy Docker API; live HTTP calls verified the
+  integrated booking workflow. The unrelated application occupying port 8000 stayed running;
+  ArenaHub used an ignored local Compose override on port 8001.
+- **Lesson:** Passing application tests does not verify the deployment entry point. Rehearse
+  the actual container startup on the machine used for the demo.
+
 ## Proposal phase (September 2026)
 
 - **Wrong deadline:** the assistant said the proposal was due Wednesday; it was Thursday,

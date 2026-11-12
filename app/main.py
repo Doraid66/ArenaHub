@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.auth.routes import router as auth_router
+from app.bookings.routes import router as bookings_router  # Person 1: player holds, reads, and cancellation.
 from app.catalog.routes import router as catalog_router
 from app.core.config import get_settings
 from app.core.errors import make_contract_match_error_format, register_error_handlers
@@ -38,6 +39,7 @@ app.include_router(health_router)
 app.include_router(catalog_router)
 app.include_router(auth_router)
 app.include_router(manager_router)
+app.include_router(bookings_router)  # Use the shared auth, errors, sessions, and middleware.
 
 # ---------- Test front end (same origin as the API, so no CORS setup is needed) ----------
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"

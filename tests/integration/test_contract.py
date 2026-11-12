@@ -41,6 +41,7 @@ TEST_TOKEN = "contract-test-token"
 # that as a bug. Add Person 1's and Person 2's routes here when they are registered:
 #   "POST /fields/{field_id}/bookings", "POST /fields/{field_id}/blocks"
 CROSS_FIELD_RULES = {
+    "POST /fields/{field_id}/bookings",  # The service also checks interval ordering and future starts.
     "GET /fields/{field_id}/availability",
     "POST /fields/{field_id}/blocks",
 }

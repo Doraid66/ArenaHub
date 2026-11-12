@@ -1,0 +1,1 @@
+"""Player booking HTTP interface."""

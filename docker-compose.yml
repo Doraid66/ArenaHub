@@ -1,40 +1,40 @@
 # Start everything with:  docker compose up --build
 # Values like ${POSTGRES_PASSWORD} come from your local .env file (see .env.example).
 
-services:
-  db:
-    image: postgres:17
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-arenahub}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your .env file}
-      POSTGRES_DB: ${POSTGRES_DB:-arenahub}
-    volumes:
+services: # The containers that make up the app.
+  db: # The PostgreSQL database.
+    image: postgres:17 # Official PostgreSQL 17 image.
+    environment: # Settings read by the image on first start.
+      POSTGRES_USER: ${POSTGRES_USER:-arenahub} # Database user; defaults to arenahub.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your .env file} # Required: compose stops with this message if missing.
+      POSTGRES_DB: ${POSTGRES_DB:-arenahub} # Database name; defaults to arenahub.
+    volumes: # Storage that outlives the container.
       - pgdata:/var/lib/postgresql/data   # keeps the data when containers restart
-    ports:
+    ports: # Ports opened on your computer.
       - "${POSTGRES_PORT:-5432}:5432"      # optional: lets you inspect the database from your Mac
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 2s
-      timeout: 3s
-      retries: 30
+    healthcheck: # How compose decides the database is ready.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"] # Ask PostgreSQL if it accepts connections.
+      interval: 2s # Check every 2 seconds.
+      timeout: 3s # Give each check 3 seconds.
+      retries: 30 # Give up after 30 failed checks.
 
-  api:
-    build: .
-    env_file: .env
-    environment:
+  api: # The ArenaHub API.
+    build: . # Build the image from the Dockerfile in this folder.
+    env_file: .env # Load settings from your local .env file.
+    environment: # Settings that override .env.
       # Inside Docker the database host is "db" (the service name), not localhost.
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-arenahub}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-arenahub}
-    depends_on:
-      db:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-arenahub}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-arenahub} # Connection string pointing at the db container.
+    depends_on: # Start order.
+      db: # Wait for the database.
         condition: service_healthy        # wait until PostgreSQL accepts connections
-    ports:
-      - "8000:8000"
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=3)"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
+    ports: # Ports opened on your computer.
+      - "8000:8000" # Reach the API at http://localhost:8000.
+    healthcheck: # How compose decides the API is healthy.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=3)"] # Call the readiness endpoint.
+      interval: 10s # Check every 10 seconds.
+      timeout: 5s # Give each check 5 seconds.
+      retries: 5 # Mark unhealthy after 5 failed checks.
+      start_period: 15s # Ignore failures while the API starts up.
 
-volumes:
-  pgdata:
+volumes: # Named storage managed by Docker.
+  pgdata: # Holds the database files.

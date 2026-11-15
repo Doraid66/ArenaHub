@@ -1,8 +1,8 @@
-fastapi==0.162.2
-uvicorn[standard]==0.54.0
-sqlalchemy==2.1.8
-alembic==1.20.1
-psycopg[binary]==3.3.8
-pydantic-settings==2.16.2
-pyjwt==2.15.1
-argon2-cffi==25.1.0
+fastapi==0.162.2 # Web framework for the API.
+uvicorn[standard]==0.54.0 # Server that runs the app.
+sqlalchemy==2.1.8 # Database toolkit (ORM).
+alembic==1.20.1 # Database migrations.
+psycopg[binary]==3.3.8 # PostgreSQL driver.
+pydantic-settings==2.16.2 # Reads settings from environment variables.
+pyjwt==2.15.1 # Signs and verifies login tokens.
+argon2-cffi==25.1.0 # Password hashing.
